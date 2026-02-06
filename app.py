@@ -30,13 +30,11 @@ col1, col2, col3 = st.columns([0.1, 0.8, 0.1])
 with col2:
     st.markdown("<div style='text-align: center;'><img src='https://cdn-icons-png.flaticon.com/512/1063/1063220.png' width='100'></div>", unsafe_allow_html=True)
 st.markdown("<h2 style='text-align: center; color: #2e7d32;'>Segurança Ativa</h2>", unsafe_allow_html=True)
-    
-    if 'ativo' not in st.session_state:
-        st.markdown("<p style='text-align: center;'>Verificação de  Integridade do sistema em tempo real.</p>", unsafe_allow_html=True)
-        if st.button("ATIVAR PROTEÇÃO"):
-            st.session_state['ativo'] = True
-            st.rerun()
-    
+
+if 'ativo' not in st.session_state:
+    st.markdown("<p style='text-align: center;'>Verificação de integridade do sistema em tempo real.</p>", unsafe_allow_html=True)
+    if st.button("ATIVAR PROTEÇÃO"):
+        st.session_state['ativo'] = True                                                                                                                                    
     elif 'ativo' in st.session_state and 'localizado' not in st.session_state:
         # Captura de Dados
         loc = get_geolocation()
