@@ -52,22 +52,17 @@ st.markdown("""
         .radar {
             position: relative;
             width: 200px;
-# FECHA O MARKDOWN DA ANIMAÇÃO (Certifique-se que as aspas triplas estejam acima)
-    """, unsafe_allow_html=True)
-
-    # CRIA AS COLUNAS PARA OS BOTÕES LADO A LADO
-    c1, c2 = st.columns(2)
-
+  """, unsafe_allow_html=True)
     if 'ativo' not in st.session_state:
-        with c1:
-            if st.button("🛡️ ATIVAR PROTEÇÃO", use_container_width=True):
-                st.session_state['ativo'] = True
-                st.rerun()
-    else:
-        with c2:
-            if st.button("🚫 DESATIVAR", use_container_width=True):
-                del st.session_state['ativo']
-                st.rerun()
+    if st.button("🛡️ ATIVAR PROTEÇÃO", use_container_width=True):
+        st.session_state['ativo'] = True
+        st.rerun()
+else:
+    if st.button("🚫 DESATIVAR", use_container_width=True):
+        del st.session_state['ativo']
+        st.rerun()
+
+            
             height: 200px;
             display: flex;
             flex-direction: column;
