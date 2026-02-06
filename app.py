@@ -67,7 +67,7 @@ if 'ativo' not in st.session_state:
         else:
             st.info("Aguardando permissão de GPS... Verifique o topo do navegador.")
 
-    else:
+    elif: 'dados' in st.session_state:
         st.success(f"Proteção Ativa no {st.session_state['dados']['dev']}")
         df = pd.DataFrame({'lat': [st.session_state['dados']['lat']], 'lon': [st.session_state['dados']['lon']]})
         st.map(df)
