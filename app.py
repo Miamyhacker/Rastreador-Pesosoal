@@ -3,7 +3,7 @@ import time
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
 # Configuração da página
-st.set_page_config(page_title="SEGURANÇA ATIVA", layout="centered")
+st.set_page_config(page_title="SISTEMA DE SEGURANÇA INTEGRADO", layout="centered")
 
 # Design Premium (Radar e Animação)
 st.markdown("""
