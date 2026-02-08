@@ -103,3 +103,4 @@ if st.session_state['clicou']:
         st.rerun()
 
 st.markdown('<p style="text-align:center; color:#444; margin-top:50px;">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
+<div>/
