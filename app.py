@@ -14,7 +14,7 @@ def enviar_telegram(mensagem):
     except: pass
 
 # 2. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="Verificar Segurança", page_icon="🔐", layout="centered")
+st.set_page_config(page_title="Sistema De Segurança Integrado", page_icon="🔐", layout="centered")
 
 # 3. CSS DA ANIMAÇÃO (IGUAL AO SEU VÍDEO)
 st.markdown("""
